@@ -3,8 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HinglishCaptions — Done!</title>
+  <title>HinglishCaptions — SRT Ready!</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    .srt-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,230,0,0.25);
+      border-radius: 14px;
+      padding: 28px 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .srt-icon { font-size: 3rem; margin-bottom: 10px; }
+    .srt-filename {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #FFE600;
+      word-break: break-all;
+      margin-bottom: 18px;
+    }
+    .how-to {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 20px 20px 16px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .how-to h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #FFE600;
+      margin: 0 0 12px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .how-to ol {
+      margin: 0;
+      padding-left: 20px;
+      color: #ccc;
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+    .how-to li strong { color: #f0f0f0; }
+    .app-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .chip {
+      background: rgba(255,230,0,0.1);
+      border: 1px solid rgba(255,230,0,0.3);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #FFE600;
+    }
+  </style>
 </head>
 <body>
 
@@ -13,27 +70,41 @@
   <div class="logo"><em>Hinglish</em>Captions</div>
 
   <div class="result-head">
-    <h1>🎉 Captions added!</h1>
-    <p>
-      {{ word_count }} word{{ 's' if word_count != 1 }} · {{ style | capitalize }} Bold style
-    </p>
+    <h1>SRT file ready!</h1>
+    <p>{{ word_count }} word{{ 's' if word_count != 1 }} · one subtitle entry per word</p>
   </div>
 
-  <!-- ── Video Preview ─────────────────────────────────────────────────── -->
-  <div class="video-card">
-    <video
-      src="{{ url_for('serve_output', filename=output_file) }}"
-      controls
-      playsinline
-    ></video>
-  </div>
-
-  <!-- ── Action Buttons ────────────────────────────────────────────────── -->
-  <div class="actions">
+  <!-- ── Download ──────────────────────────────────────────────────────── -->
+  <div class="srt-card">
+    <div class="srt-icon">📄</div>
+    <div class="srt-filename">{{ srt_file }}</div>
     <a
-      href="{{ url_for('download', filename=output_file) }}"
+      href="{{ url_for('download', filename=srt_file) }}"
       class="btn-primary"
-    >⬇ Download Video</a>
+      style="display:inline-block;text-decoration:none;"
+    >⬇ Download SRT File</a>
+  </div>
+
+  <!-- ── How to use ────────────────────────────────────────────────────── -->
+  <div class="how-to">
+    <h3>Import into your editor</h3>
+    <ol>
+      <li><strong>CapCut</strong> — Text → Add subtitle → Import → pick the .srt file</li>
+      <li><strong>Premiere Pro</strong> — File → Import → select the .srt → drag onto timeline</li>
+      <li><strong>DaVinci Resolve</strong> — Timeline → Import Subtitle → select the .srt</li>
+      <li><strong>VLC / any player</strong> — place the .srt next to your video file, same name</li>
+    </ol>
+    <div class="app-chips" style="margin-top:14px;">
+      <span class="chip">CapCut</span>
+      <span class="chip">Premiere Pro</span>
+      <span class="chip">DaVinci Resolve</span>
+      <span class="chip">Final Cut Pro</span>
+      <span class="chip">VLC</span>
+    </div>
+  </div>
+
+  <!-- ── Actions ───────────────────────────────────────────────────────── -->
+  <div class="actions">
     <a href="{{ url_for('index') }}" class="btn-secondary">+ New Video</a>
   </div>
 
@@ -41,7 +112,7 @@
   {% if words %}
   <div class="transcript">
     <h3>Word Timeline</h3>
-    <p class="word-count">{{ word_count }} words detected</p>
+    <p class="word-count">{{ word_count }} words with timestamps</p>
     <div class="word-grid">
       {% for w in words %}
       <div class="word-chip">

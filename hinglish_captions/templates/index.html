@@ -12,11 +12,11 @@
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
   <p class="loading-title">Processing your video…</p>
-  <p class="loading-sub">Uploading & transcribing — usually 30–90 seconds. Don't close this tab.</p>
+  <p class="loading-sub">Uploading to AssemblyAI & transcribing — usually 30–90 seconds. Don't close this tab.</p>
   <div class="stage-list">
-    <div class="stage"><span class="stage-dot"></span>Extracting audio</div>
-    <div class="stage"><span class="stage-dot"></span>Sending to AssemblyAI</div>
+    <div class="stage"><span class="stage-dot"></span>Uploading video to AssemblyAI</div>
     <div class="stage"><span class="stage-dot"></span>Transcribing Hinglish audio</div>
+    <div class="stage"><span class="stage-dot"></span>Building word-level timestamps</div>
     <div class="stage"><span class="stage-dot"></span>Next: review & fix spellings</div>
   </div>
 </div>
@@ -25,7 +25,7 @@
 <div class="page">
 
   <div class="logo"><em>Hinglish</em>Captions</div>
-  <p class="tagline">Word-by-word auto captions in the style of Indian Reels creators</p>
+  <p class="tagline">Word-by-word .srt captions for CapCut, Premiere Pro & any editor</p>
 
   <div class="card">
 
@@ -73,35 +73,6 @@
         </div>
       </div>
 
-      <!-- ── Caption Style ────────────────────────────────────────────── -->
-      <div class="field">
-        <label>Caption Style</label>
-        <div class="style-cards">
-
-          <label class="style-card active" id="card-yellow">
-            <input type="radio" name="style" value="yellow" checked
-                   onchange="selectStyle('yellow')" />
-            <span class="cap-preview yellow">WORD</span>
-            <span class="style-name">Yellow Bold</span>
-          </label>
-
-          <label class="style-card" id="card-white">
-            <input type="radio" name="style" value="white"
-                   onchange="selectStyle('white')" />
-            <span class="cap-preview white">WORD</span>
-            <span class="style-name">White Bold</span>
-          </label>
-
-          <label class="style-card" id="card-red">
-            <input type="radio" name="style" value="red"
-                   onchange="selectStyle('red')" />
-            <span class="cap-preview red">WORD</span>
-            <span class="style-name">Red Bold</span>
-          </label>
-
-        </div>
-      </div>
-
       <!-- ── Language mode ───────────────────────────────────────────── -->
       <div class="field">
         <label>Transcription Language</label>
@@ -124,23 +95,9 @@
         </p>
       </div>
 
-      <!-- ── Words per group ─────────────────────────────────────────── -->
-      <div class="field">
-        <label>Words per caption group — <span id="wpgVal">3</span></label>
-        <input
-          type="range" name="words_per_group"
-          min="1" max="5" value="3" step="1"
-          oninput="document.getElementById('wpgVal').textContent = this.value"
-          style="width:100%;accent-color:#FFE600;margin-top:6px;"
-        />
-        <p style="font-size:.73rem;color:#666;margin-top:4px;">
-          1 = single-word pop &nbsp;·&nbsp; 3 = CapCut default &nbsp;·&nbsp; 5 = subtitle-style
-        </p>
-      </div>
-
       <!-- ── Submit ───────────────────────────────────────────────────── -->
       <button type="submit" class="btn-primary">
-        ✨ Generate Captions
+        ✨ Transcribe &amp; Generate SRT
       </button>
 
     </form>
@@ -164,13 +121,6 @@
   function toggleKey() {
     const inp = document.getElementById('apiKey');
     inp.type = inp.type === 'password' ? 'text' : 'password';
-  }
-
-  /* ── Style card selection ──────────────────────────────────────────── */
-  function selectStyle(name) {
-    ['yellow','white','red'].forEach(s => {
-      document.getElementById('card-' + s).classList.toggle('active', s === name);
-    });
   }
 
   /* ── Show loading overlay on submit ───────────────────────────────── */

@@ -5,10 +5,10 @@ import uuid
 from flask import Flask, render_template, request, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
 
-from caption_engine import transcribe_only, render
+from caption_engine import transcribe_only, build_srt
 
 app = Flask(__name__)
-app.jinja_env.globals["enumerate"] = enumerate   # expose Python's enumerate to templates
+app.jinja_env.globals["enumerate"] = enumerate
 app.config["UPLOAD_FOLDER"] = "uploads"
 app.config["OUTPUT_FOLDER"] = "outputs"
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
@@ -24,8 +24,6 @@ def _job_path(uid):
     return os.path.join(app.config["UPLOAD_FOLDER"], f"job_{uid}.json")
 
 
-# ── Step 1: Upload + Transcribe ───────────────────────────────────────────────
-
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -33,11 +31,9 @@ def index():
 
 @app.route("/process", methods=["POST"])
 def process_video():
-    video_file      = request.files.get("video")
-    api_key         = request.form.get("api_key", "").strip()
-    style           = request.form.get("style", "yellow")
-    language        = request.form.get("language", "en")
-    words_per_group = int(request.form.get("words_per_group", 3))
+    video_file = request.files.get("video")
+    api_key    = request.form.get("api_key", "").strip()
+    language   = request.form.get("language", "en")
 
     if not video_file or video_file.filename == "":
         return render_template("index.html", error="Please select a video file.")
@@ -47,8 +43,8 @@ def process_video():
         return render_template("index.html", error="AssemblyAI API key is required.")
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-    uid      = uuid.uuid4().hex[:10]
-    filename = secure_filename(video_file.filename)
+    uid       = uuid.uuid4().hex[:10]
+    filename  = secure_filename(video_file.filename)
     stem, ext = os.path.splitext(filename)
     save_name  = f"{stem}_{uid}{ext}"
     video_path = os.path.join(app.config["UPLOAD_FOLDER"], save_name)
@@ -59,21 +55,16 @@ def process_video():
     except Exception as exc:
         return render_template("index.html", error=str(exc))
 
-    # Persist job so the review + render steps can access it
     job = {
-        "video_path":     video_path,
-        "style":          style,
-        "language":       language,
-        "words_per_group": words_per_group,
-        "words":          words,
+        "video_path": video_path,
+        "language":   language,
+        "words":      words,
     }
     with open(_job_path(uid), "w", encoding="utf-8") as f:
         json.dump(job, f, ensure_ascii=False)
 
     return redirect(url_for("review", uid=uid))
 
-
-# ── Step 2: Review & edit transcript ─────────────────────────────────────────
 
 @app.route("/review/<uid>")
 def review(uid):
@@ -85,8 +76,6 @@ def review(uid):
     return render_template("review.html", uid=uid, job=job)
 
 
-# ── Step 3: Render with (possibly edited) words ───────────────────────────────
-
 @app.route("/render/<uid>", methods=["POST"])
 def render_video(uid):
     path = _job_path(uid)
@@ -96,25 +85,21 @@ def render_video(uid):
     with open(path, encoding="utf-8") as f:
         job = json.load(f)
 
-    # Collect edited words from form
     corrected = []
     for i, w in enumerate(job["words"]):
         text = request.form.get(f"w{i}", w["text"]).strip()
-        if text:                              # skip blanks (deleted words)
+        if text:
             corrected.append({"text": text, "start": w["start"], "end": w["end"]})
 
-    try:
-        output_path = render(
-            job["video_path"],
-            corrected,
-            style=job["style"],
-            words_per_group=job["words_per_group"],
-            output_dir=app.config["OUTPUT_FOLDER"],
-        )
-    except Exception as exc:
-        return render_template("review.html", uid=uid, job=job, error=str(exc))
+    srt_content = build_srt(corrected)
 
-    # Clean up job file
+    os.makedirs(app.config["OUTPUT_FOLDER"], exist_ok=True)
+    stem         = os.path.splitext(os.path.basename(job["video_path"]))[0]
+    srt_filename = f"{stem}.srt"
+    srt_path     = os.path.join(app.config["OUTPUT_FOLDER"], srt_filename)
+    with open(srt_path, "w", encoding="utf-8") as f:
+        f.write(srt_content)
+
     try:
         os.unlink(path)
     except OSError:
@@ -122,19 +107,9 @@ def render_video(uid):
 
     return render_template(
         "result.html",
-        output_file=os.path.basename(output_path),
+        srt_file=srt_filename,
         words=corrected,
-        style=job["style"],
         word_count=len(corrected),
-    )
-
-
-# ── File serving ──────────────────────────────────────────────────────────────
-
-@app.route("/output/<path:filename>")
-def serve_output(filename):
-    return send_file(
-        os.path.join(app.config["OUTPUT_FOLDER"], filename), mimetype="video/mp4"
     )
 
 

@@ -66,8 +66,8 @@
 <!-- Loading overlay for render step -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
-  <p class="loading-title">Burning captions into video…</p>
-  <p class="loading-sub">Usually 20–60 seconds. Don't close this tab.</p>
+  <p class="loading-title">Generating SRT file…</p>
+  <p class="loading-sub">Just a moment — building your subtitle file.</p>
 </div>
 
 <div class="page">
@@ -85,7 +85,7 @@
 
   <div class="review-tip">
     <strong>Tip:</strong> Click any word to edit it.
-    Wrong Hinglish spellings are common — fix them here before burning into the video.
+    Wrong Hinglish spellings are common — fix them here before generating the SRT.
     Leave a field blank to remove that word entirely.
   </div>
 
@@ -115,7 +115,7 @@
 
       <div class="render-bar">
         <button type="submit" class="btn-primary" style="flex:2">
-          🎬 Generate Video
+          📄 Generate SRT
         </button>
         <a href="{{ url_for('index') }}" class="btn-secondary" style="flex:1;text-align:center;">
           ✕ Start Over
