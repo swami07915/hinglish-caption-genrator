@@ -9,11 +9,10 @@ from caption_engine import transcribe_only, build_srt
 
 app = Flask(__name__)
 app.jinja_env.globals["enumerate"] = enumerate
-app.config["UPLOAD_FOLDER"] = "uploads"
-app.config["OUTPUT_FOLDER"] = "outputs"
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 
 ALLOWED_EXT = {"mp4", "mov", "avi", "mkv"}
+_CHUNK = 1024 * 1024  # 1 MB — stream upload in chunks, never loads full file
 
 
 def _allowed(filename):
@@ -21,7 +20,7 @@ def _allowed(filename):
 
 
 def _job_path(uid):
-    return os.path.join(app.config["UPLOAD_FOLDER"], f"job_{uid}.json")
+    return f"/tmp/job_{uid}.json"
 
 
 @app.route("/")
@@ -42,21 +41,32 @@ def process_video():
     if not api_key:
         return render_template("index.html", error="AssemblyAI API key is required.")
 
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-    uid       = uuid.uuid4().hex[:10]
     filename  = secure_filename(video_file.filename)
     stem, ext = os.path.splitext(filename)
-    save_name  = f"{stem}_{uid}{ext}"
-    video_path = os.path.join(app.config["UPLOAD_FOLDER"], save_name)
-    video_file.save(video_path)
+    uid       = uuid.uuid4().hex[:10]
+
+    # Write directly to /tmp in 1 MB chunks — RAM stays flat regardless of file size
+    video_path = f"/tmp/video_{uid}{ext}"
+    with open(video_path, "wb") as f:
+        while True:
+            chunk = video_file.stream.read(_CHUNK)
+            if not chunk:
+                break
+            f.write(chunk)
 
     try:
         words = transcribe_only(video_path, api_key, language=language)
     except Exception as exc:
         return render_template("index.html", error=str(exc))
+    finally:
+        # Delete video as soon as transcription is done — no reason to keep it
+        try:
+            os.unlink(video_path)
+        except OSError:
+            pass
 
     job = {
-        "video_path": video_path,
+        "video_stem": stem,
         "language":   language,
         "words":      words,
     }
@@ -91,12 +101,9 @@ def render_video(uid):
         if text:
             corrected.append({"text": text, "start": w["start"], "end": w["end"]})
 
-    srt_content = build_srt(corrected)
-
-    os.makedirs(app.config["OUTPUT_FOLDER"], exist_ok=True)
-    stem         = os.path.splitext(os.path.basename(job["video_path"]))[0]
-    srt_filename = f"{stem}.srt"
-    srt_path     = os.path.join(app.config["OUTPUT_FOLDER"], srt_filename)
+    srt_content  = build_srt(corrected)
+    srt_filename = f"{job['video_stem']}.srt"
+    srt_path     = f"/tmp/{srt_filename}"
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write(srt_content)
 
@@ -115,11 +122,9 @@ def render_video(uid):
 
 @app.route("/download/<path:filename>")
 def download(filename):
-    return send_file(
-        os.path.join(app.config["OUTPUT_FOLDER"], filename),
-        as_attachment=True,
-        download_name=filename,
-    )
+    # basename strips any path traversal attempts
+    safe_name = os.path.basename(filename)
+    return send_file(f"/tmp/{safe_name}", as_attachment=True, download_name=safe_name)
 
 
 if __name__ == "__main__":

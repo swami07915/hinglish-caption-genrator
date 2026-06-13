@@ -1,10 +1,41 @@
+import os
+import subprocess
+import uuid
+
 import assemblyai as aai
+from imageio_ffmpeg import get_ffmpeg_exe
+
+_FFMPEG = get_ffmpeg_exe()
+
+
+def extract_audio(video_path: str) -> str:
+    """Extract mono 16 kHz WAV from video — typically under 10 MB even for long clips."""
+    out = f"/tmp/audio_{uuid.uuid4().hex[:8]}.wav"
+    result = subprocess.run(
+        [_FFMPEG, "-y", "-i", video_path, "-ac", "1", "-ar", "16000", "-vn", out],
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "FFmpeg audio extraction failed:\n"
+            + result.stderr.decode(errors="replace")[-500:]
+        )
+    return out
 
 
 def transcribe_only(video_path: str, api_key: str, language: str = "en") -> list:
-    aai.settings.api_key = api_key
-    config = aai.TranscriptionConfig(language_code=language)
-    transcript = aai.Transcriber().transcribe(video_path, config=config)
+    audio_path = extract_audio(video_path)
+    try:
+        aai.settings.api_key = api_key
+        config = aai.TranscriptionConfig(language_code=language)
+        transcript = aai.Transcriber().transcribe(audio_path, config=config)
+    finally:
+        # Delete audio immediately after upload — AssemblyAI has it now
+        try:
+            os.unlink(audio_path)
+        except OSError:
+            pass
+
     if transcript.status == aai.TranscriptStatus.error:
         raise RuntimeError(f"AssemblyAI transcription failed: {transcript.error}")
     words = transcript.words or []
