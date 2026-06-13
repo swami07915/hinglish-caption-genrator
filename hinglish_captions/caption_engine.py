@@ -7,6 +7,16 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 _FFMPEG = get_ffmpeg_exe()
 
+# Common Hinglish words that ASR tends to mishear — boosted for accuracy
+_WORD_BOOST = [
+    "yaar", "bhai", "kya", "nahi", "matlab", "achha", "haan", "theek",
+    "toh", "aur", "lekin", "kyunki", "bohot", "bilkul", "pagal", "dost",
+    "pyaar", "zindagi", "dil", "sach", "iska", "uska", "mera", "tera",
+    "humara", "tumhara", "kar", "karo", "karta", "karti", "raha", "rahi",
+    "dekho", "suno", "bolo", "samjhe", "chal", "arre", "oye", "woh",
+    "abhi", "phir", "sirf", "bas", "zyada", "kam", "accha", "thoda",
+]
+
 
 def extract_audio(video_path: str) -> str:
     """Extract mono 16 kHz WAV from video — typically under 10 MB even for long clips."""
@@ -23,14 +33,17 @@ def extract_audio(video_path: str) -> str:
     return out
 
 
-def transcribe_only(video_path: str, api_key: str, language: str = "en") -> list:
+def transcribe_only(video_path: str, api_key: str, language: str = "hi") -> list:
     audio_path = extract_audio(video_path)
     try:
         aai.settings.api_key = api_key
-        config = aai.TranscriptionConfig(language_code=language)
+        config = aai.TranscriptionConfig(
+            language_code=language,
+            word_boost=_WORD_BOOST,
+        )
         transcript = aai.Transcriber().transcribe(audio_path, config=config)
     finally:
-        # Delete audio immediately after upload — AssemblyAI has it now
+        # Delete audio immediately — AssemblyAI has it now, no reason to keep
         try:
             os.unlink(audio_path)
         except OSError:

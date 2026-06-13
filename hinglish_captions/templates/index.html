@@ -77,21 +77,21 @@
       <div class="field">
         <label>Transcription Language</label>
         <div class="style-cards">
-          <label class="style-card active" id="card-lang-en">
-            <input type="radio" name="language" value="en" checked
-                   onchange="selectLang('en')" />
-            <span style="font-size:1.4rem;">🇮🇳</span>
-            <span class="style-name">Hinglish (Roman)</span>
-          </label>
-          <label class="style-card" id="card-lang-hi">
-            <input type="radio" name="language" value="hi"
+          <label class="style-card active" id="card-lang-hi">
+            <input type="radio" name="language" value="hi" checked
                    onchange="selectLang('hi')" />
-            <span style="font-size:1.4rem;">🔤</span>
-            <span class="style-name">Hindi (Devanagari)</span>
+            <span style="font-size:1.4rem;">🇮🇳</span>
+            <span class="style-name">Hinglish</span>
+          </label>
+          <label class="style-card" id="card-lang-en">
+            <input type="radio" name="language" value="en"
+                   onchange="selectLang('en')" />
+            <span style="font-size:1.4rem;">🇬🇧</span>
+            <span class="style-name">English only</span>
           </label>
         </div>
         <p style="font-size:.73rem;color:#666;margin-top:8px;">
-          Hinglish = yaar, kya, bhai in Roman script &nbsp;·&nbsp; Hindi = यार, क्या, भाई
+          Hinglish = yaar, kya, bhai, nahi &nbsp;·&nbsp; English = fully English speech
         </p>
       </div>
 
@@ -133,7 +133,7 @@
 
   /* ── Language card selection ──────────────────────────────────────── */
   function selectLang(name) {
-    ['en','hi'].forEach(l => {
+    ['hi','en'].forEach(l => {
       document.getElementById('card-lang-' + l).classList.toggle('active', l === name);
     });
   }

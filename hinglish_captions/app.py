@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import uuid
@@ -12,7 +13,7 @@ app.jinja_env.globals["enumerate"] = enumerate
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 
 ALLOWED_EXT = {"mp4", "mov", "avi", "mkv"}
-_CHUNK = 1024 * 1024  # 1 MB — stream upload in chunks, never loads full file
+_CHUNK = 1024 * 1024  # 1 MB — stream upload in chunks, never loads full file into RAM
 
 
 def _allowed(filename):
@@ -32,7 +33,7 @@ def index():
 def process_video():
     video_file = request.files.get("video")
     api_key    = request.form.get("api_key", "").strip()
-    language   = request.form.get("language", "en")
+    language   = request.form.get("language", "hi")
 
     if not video_file or video_file.filename == "":
         return render_template("index.html", error="Please select a video file.")
@@ -59,7 +60,7 @@ def process_video():
     except Exception as exc:
         return render_template("index.html", error=str(exc))
     finally:
-        # Delete video as soon as transcription is done — no reason to keep it
+        # Delete video as soon as transcription is done — audio was already extracted
         try:
             os.unlink(video_path)
         except OSError:
@@ -107,6 +108,7 @@ def render_video(uid):
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write(srt_content)
 
+    # Delete job JSON — no longer needed
     try:
         os.unlink(path)
     except OSError:
@@ -124,7 +126,22 @@ def render_video(uid):
 def download(filename):
     # basename strips any path traversal attempts
     safe_name = os.path.basename(filename)
-    return send_file(f"/tmp/{safe_name}", as_attachment=True, download_name=safe_name)
+    srt_path  = f"/tmp/{safe_name}"
+
+    # Read into memory (SRT files are tiny), then delete from disk
+    with open(srt_path, "rb") as f:
+        data = f.read()
+    try:
+        os.unlink(srt_path)
+    except OSError:
+        pass
+
+    return send_file(
+        io.BytesIO(data),
+        as_attachment=True,
+        download_name=safe_name,
+        mimetype="text/plain",
+    )
 
 
 if __name__ == "__main__":

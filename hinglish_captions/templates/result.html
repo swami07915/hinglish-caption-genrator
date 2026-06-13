@@ -89,7 +89,7 @@
   <div class="how-to">
     <h3>Import into your editor</h3>
     <ol>
-      <li><strong>CapCut</strong> — Text → Add subtitle → Import → pick the .srt file</li>
+      <li><strong>CapCut</strong> — Open CapCut → Text → Auto Captions → Import → select this file</li>
       <li><strong>Premiere Pro</strong> — File → Import → select the .srt → drag onto timeline</li>
       <li><strong>DaVinci Resolve</strong> — Timeline → Import Subtitle → select the .srt</li>
       <li><strong>VLC / any player</strong> — place the .srt next to your video file, same name</li>
@@ -112,9 +112,9 @@
   {% if words %}
   <div class="transcript">
     <h3>Word Timeline</h3>
-    <p class="word-count">{{ word_count }} words with timestamps</p>
+    <p class="word-count">{{ word_count }} words total — showing first 10</p>
     <div class="word-grid">
-      {% for w in words %}
+      {% for w in words[:10] %}
       <div class="word-chip">
         <span class="wt">{{ w.text }}</span>
         <span class="wts">{{ "%.1f"|format(w.start / 1000) }}s</span>
