@@ -1,1 +1,1 @@
-web: gunicorn app:app
+web: gunicorn hinglish_captions.app:app
