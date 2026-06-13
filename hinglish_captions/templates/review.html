@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HinglishCaptions — Review Transcript</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    .review-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .word-edit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .word-edit input {
+      width: 90px;
+      padding: 6px 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px;
+      color: #f0f0f0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: center;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .word-edit input:focus  { border-color: #FFE600; }
+    .word-edit input.edited { border-color: #4caf50; background: rgba(76,175,80,.08); }
+    .word-ts {
+      font-size: 0.65rem;
+      color: #FFE600;
+      font-weight: 600;
+    }
+    .review-tip {
+      background: rgba(255,230,0,0.07);
+      border: 1px solid rgba(255,230,0,0.2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.82rem;
+      color: #ccc;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .review-tip strong { color: #FFE600; }
+    .render-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding-top: 8px;
+    }
+    .word-count-badge {
+      font-size: 0.78rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay for render step -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p class="loading-title">Burning captions into video…</p>
+  <p class="loading-sub">Usually 20–60 seconds. Don't close this tab.</p>
+</div>
+
+<div class="page">
+
+  <div class="logo"><em>Hinglish</em>Captions</div>
+
+  <div class="result-head">
+    <h1>✏️ Review Transcript</h1>
+    <p>Fix any wrong words before generating the final video.</p>
+  </div>
+
+  {% if error %}
+  <div class="error-banner">⚠ {{ error }}</div>
+  {% endif %}
+
+  <div class="review-tip">
+    <strong>Tip:</strong> Click any word to edit it.
+    Wrong Hinglish spellings are common — fix them here before burning into the video.
+    Leave a field blank to remove that word entirely.
+  </div>
+
+  <form
+    id="renderForm"
+    method="POST"
+    action="{{ url_for('render_video', uid=uid) }}"
+    onsubmit="document.getElementById('loadingOverlay').classList.add('show')"
+  >
+
+    <div class="card" style="padding:24px 20px;">
+      <div class="review-grid" id="wordGrid">
+        {% for i, w in enumerate(job.words) %}
+        <div class="word-edit">
+          <input
+            type="text"
+            name="w{{ i }}"
+            value="{{ w.text }}"
+            data-original="{{ w.text }}"
+            oninput="markEdited(this)"
+            title="{{ '%.1f'|format(w.start/1000) }}s – {{ '%.1f'|format(w.end/1000) }}s"
+          />
+          <span class="word-ts">{{ '%.1f'|format(w.start/1000) }}s</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="render-bar">
+        <button type="submit" class="btn-primary" style="flex:2">
+          🎬 Generate Video
+        </button>
+        <a href="{{ url_for('index') }}" class="btn-secondary" style="flex:1;text-align:center;">
+          ✕ Start Over
+        </a>
+        <span class="word-count-badge">{{ job.words | length }} words</span>
+      </div>
+    </div>
+
+  </form>
+
+</div>
+
+<script>
+  /* Jinja2 doesn't have enumerate by default — patch via filter in template
+     but we also need it for JS interaction */
+
+  function markEdited(input) {
+    const changed = input.value.trim() !== input.dataset.original;
+    input.classList.toggle('edited', changed);
+  }
+
+  /* Keyboard nav: Tab through word inputs naturally (browser default is fine),
+     but also allow Enter to jump to next field */
+  document.querySelectorAll('.word-edit input').forEach((inp, idx, all) => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const next = all[idx + 1];
+        if (next) next.focus();
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

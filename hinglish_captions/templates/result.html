@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HinglishCaptions — Done!</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+<div class="page">
+
+  <div class="logo"><em>Hinglish</em>Captions</div>
+
+  <div class="result-head">
+    <h1>🎉 Captions added!</h1>
+    <p>
+      {{ word_count }} word{{ 's' if word_count != 1 }} · {{ style | capitalize }} Bold style
+    </p>
+  </div>
+
+  <!-- ── Video Preview ─────────────────────────────────────────────────── -->
+  <div class="video-card">
+    <video
+      src="{{ url_for('serve_output', filename=output_file) }}"
+      controls
+      playsinline
+    ></video>
+  </div>
+
+  <!-- ── Action Buttons ────────────────────────────────────────────────── -->
+  <div class="actions">
+    <a
+      href="{{ url_for('download', filename=output_file) }}"
+      class="btn-primary"
+    >⬇ Download Video</a>
+    <a href="{{ url_for('index') }}" class="btn-secondary">+ New Video</a>
+  </div>
+
+  <!-- ── Word Timeline ─────────────────────────────────────────────────── -->
+  {% if words %}
+  <div class="transcript">
+    <h3>Word Timeline</h3>
+    <p class="word-count">{{ word_count }} words detected</p>
+    <div class="word-grid">
+      {% for w in words %}
+      <div class="word-chip">
+        <span class="wt">{{ w.text }}</span>
+        <span class="wts">{{ "%.1f"|format(w.start / 1000) }}s</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- .page -->
+
+</body>
+</html>
