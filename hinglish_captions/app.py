@@ -1,7 +1,10 @@
 import io
 import json
 import os
+import tempfile
 import uuid
+
+_TMP = tempfile.gettempdir()
 
 from flask import Flask, render_template, request, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
@@ -21,7 +24,7 @@ def _allowed(filename):
 
 
 def _job_path(uid):
-    return f"/tmp/job_{uid}.json"
+    return os.path.join(_TMP, f"job_{uid}.json")
 
 
 @app.route("/")
@@ -47,7 +50,7 @@ def process_video():
     uid       = uuid.uuid4().hex[:10]
 
     # Write directly to /tmp in 1 MB chunks — RAM stays flat regardless of file size
-    video_path = f"/tmp/video_{uid}{ext}"
+    video_path = os.path.join(_TMP, f"video_{uid}{ext}")
     with open(video_path, "wb") as f:
         while True:
             chunk = video_file.stream.read(_CHUNK)
@@ -104,7 +107,7 @@ def render_video(uid):
 
     srt_content  = build_srt(corrected)
     srt_filename = f"{job['video_stem']}.srt"
-    srt_path     = f"/tmp/{srt_filename}"
+    srt_path     = os.path.join(_TMP, srt_filename)
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write(srt_content)
 
@@ -126,7 +129,7 @@ def render_video(uid):
 def download(filename):
     # basename strips any path traversal attempts
     safe_name = os.path.basename(filename)
-    srt_path  = f"/tmp/{safe_name}"
+    srt_path  = os.path.join(_TMP, safe_name)
 
     # Read into memory (SRT files are tiny), then delete from disk
     with open(srt_path, "rb") as f:
