@@ -1,9 +1,12 @@
 import os
 import subprocess
+import tempfile
 import uuid
 
 import assemblyai as aai
 from imageio_ffmpeg import get_ffmpeg_exe
+
+_TMP = tempfile.gettempdir()
 
 _FFMPEG = get_ffmpeg_exe()
 
@@ -20,7 +23,7 @@ _WORD_BOOST = [
 
 def extract_audio(video_path: str) -> str:
     """Extract mono 16 kHz WAV from video — typically under 10 MB even for long clips."""
-    out = f"/tmp/audio_{uuid.uuid4().hex[:8]}.wav"
+    out = os.path.join(_TMP, f"audio_{uuid.uuid4().hex[:8]}.wav")
     result = subprocess.run(
         [_FFMPEG, "-y", "-i", video_path, "-ac", "1", "-ar", "16000", "-vn", out],
         capture_output=True,
@@ -37,9 +40,13 @@ def transcribe_only(video_path: str, api_key: str, language: str = "hi") -> list
     audio_path = extract_audio(video_path)
     try:
         aai.settings.api_key = api_key
+        # Hinglish ("hi") must use the English ASR model so all output stays in
+        # Roman/Latin script. The Hindi model outputs Devanagari for Hindi phonemes
+        # and Latin for English words — producing the mixed-script captions bug.
+        aai_lang = "en" if language == "hi" else language
         config = aai.TranscriptionConfig(
-            language_code=language,
-            word_boost=_WORD_BOOST,
+            language_code=aai_lang,
+            word_boost=_WORD_BOOST if language == "hi" else [],
         )
         transcript = aai.Transcriber().transcribe(audio_path, config=config)
     finally:
